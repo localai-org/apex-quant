@@ -93,6 +93,8 @@ Evaluations on hybrid MoE models (HellaSwag, Winogrande, MMLU, ARC-Challenge, Tr
 
 ## Quick Start
 
+These profile examples assume a 40-layer MoE model. For another layer count, add `--layers N` with the model's layer count. For I-variants and Mini, supply an importance matrix generated for the same model as `imatrix.dat`.
+
 ```bash
 # Clone the repo
 git clone https://github.com/mudler/apex-quant.git
@@ -100,28 +102,34 @@ cd apex-quant
 
 # Quantize a model (requires an F16 GGUF and llama.cpp built)
 # APEX I-Quality (recommended -- best accuracy across benchmarks)
-./scripts/quantize.sh --i-quality model-f16.gguf model-apex-i-quality.gguf
+./scripts/quantize.sh --profile i-quality --imatrix imatrix.dat model-f16.gguf model-apex-i-quality.gguf
 
 # APEX Quality (best perplexity of any quantization)
-./scripts/quantize.sh --quality model-f16.gguf model-apex-quality.gguf
+./scripts/quantize.sh --profile quality model-f16.gguf model-apex-quality.gguf
 
 # APEX I-Balanced / Balanced (best all-rounder)
-./scripts/quantize.sh --i-balanced model-f16.gguf model-apex-i-balanced.gguf
-./scripts/quantize.sh --balanced model-f16.gguf model-apex-balanced.gguf
+./scripts/quantize.sh --profile i-balanced --imatrix imatrix.dat model-f16.gguf model-apex-i-balanced.gguf
+./scripts/quantize.sh --profile balanced model-f16.gguf model-apex-balanced.gguf
 
 # APEX I-Compact / Compact (consumer 24 GB GPUs)
-./scripts/quantize.sh --i-compact model-f16.gguf model-apex-i-compact.gguf
-./scripts/quantize.sh --compact model-f16.gguf model-apex-compact.gguf
+./scripts/quantize.sh --profile i-compact --imatrix imatrix.dat model-f16.gguf model-apex-i-compact.gguf
+./scripts/quantize.sh --profile compact model-f16.gguf model-apex-compact.gguf
 
 # APEX Mini (consumer 16 GB VRAM, smallest viable)
-./scripts/quantize.sh --mini model-f16.gguf model-apex-mini.gguf
+./scripts/quantize.sh --profile mini --imatrix imatrix.dat model-f16.gguf model-apex-mini.gguf
 ```
 
-Or run the full pipeline from a HuggingFace model ID:
+For the full pipeline, use [apex_pipeline.sh](scripts/apex_pipeline.sh) with a YAML model configuration. `quantize.sh` does not accept `--full-pipeline` or a Hugging Face model ID.
+
+Prepare a configuration for your model, including its source, layer count, and calibration file. The [Qwen3.8-27B configuration](models/qwen38_27b.yaml) shows the format; its dense profiles are specific to that model. Set `LLAMA_CPP_DIR` to your llama.cpp `build/bin` directory and provide the calibration and evaluation datasets required by your selected phases.
+
+Replace `path/to/model.yaml` below with your configuration. This example skips the upload phase:
 
 ```bash
-./scripts/quantize.sh --full-pipeline Qwen/Qwen3.5-35B-A3B
+./scripts/apex_pipeline.sh --config path/to/model.yaml --skip publish
 ```
+
+Run `./scripts/apex_pipeline.sh --help` for phase selection with `--phase`, `--only`, and `--from`.
 
 ## How It Works
 
